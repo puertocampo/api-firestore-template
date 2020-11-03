@@ -1,0 +1,52 @@
+name: Delivery
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+  GCP_REGION: ${{ secrets.GCP_REGION }}
+  IMAGE: asia.gcr.io/${{ secrets.GCP_PROJECT }}/gcp-repo-name:${{ github.sha }}
+
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check env var
+        run: echo $GCP_PROJECT $GCP_REGION $IMAGE
+
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: GCP Authenticate
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          version: "290.0.1"
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_email: ${{ secrets.GCP_SA_EMAIL }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Configure docker to use the gcloud cli
+        run: gcloud auth configure-docker --quiet
+
+      - name: Check env var
+        run: echo $GCP_PROJECT $GCP_REGION $IMAGE
+
+      - name: Build a docker image
+        run: docker build . -t $IMAGE
+
+      - name: Push the docker image
+        run: docker push $IMAGE
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy gcp-repo-name \
+            --image $IMAGE \
+            --project $GCP_PROJECT \
+            --region $GCP_REGION \
+            --platform managed \
+            --quiet

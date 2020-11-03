@@ -1,0 +1,11 @@
+version: "3"
+services:
+  quickiterate-sekoh-api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: quickiterate-sekoh-api
+    environment:
+      - ENV
+    ports:
+      - 8080:3000
